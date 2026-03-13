@@ -18,15 +18,27 @@ interface ToastProps {
 
 const ToastItem: React.FC<ToastProps> = ({ toast, onDismiss }) => {
   const [isExiting, setIsExiting] = useState(false);
+  const [progress, setProgress] = useState(100);
 
   useEffect(() => {
-    const duration = toast.duration || 4000;
+    const duration = toast.duration || 5000;
+    const startTime = Date.now();
+    
+    const progressInterval = setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      const remaining = Math.max(0, 100 - (elapsed / duration) * 100);
+      setProgress(remaining);
+    }, 50);
+
     const timer = setTimeout(() => {
       setIsExiting(true);
       setTimeout(() => onDismiss(toast.id), 300);
     }, duration);
 
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      clearInterval(progressInterval);
+    };
   }, [toast.id, toast.duration, onDismiss]);
 
   const handleDismiss = () => {
@@ -35,59 +47,93 @@ const ToastItem: React.FC<ToastProps> = ({ toast, onDismiss }) => {
   };
 
   const icons = {
-    success: <CheckCircle className="w-5 h-5 text-green-500" />,
-    error: <XCircle className="w-5 h-5 text-red-500" />,
-    warning: <AlertTriangle className="w-5 h-5 text-yellow-500" />,
-    info: <Info className="w-5 h-5 text-blue-500" />,
+    success: <CheckCircle className="w-5 h-5" />,
+    error: <XCircle className="w-5 h-5" />,
+    warning: <AlertTriangle className="w-5 h-5" />,
+    info: <Info className="w-5 h-5" />,
   };
 
-  const bgColors = {
-    success: 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800',
-    error: 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800',
-    warning: 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800',
-    info: 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800',
+  const styles = {
+    success: {
+      bg: 'bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/90 dark:to-emerald-900/90',
+      border: 'border-l-4 border-l-green-500 dark:border-l-green-400',
+      icon: 'text-green-600 dark:text-green-300',
+      title: 'text-green-900 dark:text-green-50',
+      message: 'text-green-700 dark:text-green-200',
+      progress: 'bg-green-500 dark:bg-green-400',
+    },
+    error: {
+      bg: 'bg-gradient-to-r from-red-50 to-rose-50 dark:from-red-900/90 dark:to-rose-900/90',
+      border: 'border-l-4 border-l-red-500 dark:border-l-red-400',
+      icon: 'text-red-600 dark:text-red-300',
+      title: 'text-red-900 dark:text-red-50',
+      message: 'text-red-700 dark:text-red-200',
+      progress: 'bg-red-500 dark:bg-red-400',
+    },
+    warning: {
+      bg: 'bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-900/90 dark:to-yellow-900/90',
+      border: 'border-l-4 border-l-amber-500 dark:border-l-amber-400',
+      icon: 'text-amber-600 dark:text-amber-300',
+      title: 'text-amber-900 dark:text-amber-50',
+      message: 'text-amber-700 dark:text-amber-200',
+      progress: 'bg-amber-500 dark:bg-amber-400',
+    },
+    info: {
+      bg: 'bg-gradient-to-r from-blue-50 to-sky-50 dark:from-blue-900/90 dark:to-sky-900/90',
+      border: 'border-l-4 border-l-blue-500 dark:border-l-blue-400',
+      icon: 'text-blue-600 dark:text-blue-300',
+      title: 'text-blue-900 dark:text-blue-50',
+      message: 'text-blue-700 dark:text-blue-200',
+      progress: 'bg-blue-500 dark:bg-blue-400',
+    },
   };
 
-  const titleColors = {
-    success: 'text-green-800 dark:text-green-200',
-    error: 'text-red-800 dark:text-red-200',
-    warning: 'text-yellow-800 dark:text-yellow-200',
-    info: 'text-blue-800 dark:text-blue-200',
-  };
-
-  const messageColors = {
-    success: 'text-green-600 dark:text-green-300',
-    error: 'text-red-600 dark:text-red-300',
-    warning: 'text-yellow-600 dark:text-yellow-300',
-    info: 'text-blue-600 dark:text-blue-300',
-  };
+  const currentStyle = styles[toast.type];
 
   return (
     <div
       className={`
-        flex items-start gap-3 p-4 rounded-lg border shadow-lg
+        relative overflow-hidden rounded-xl shadow-2xl backdrop-blur-sm
         transform transition-all duration-300 ease-out
-        ${bgColors[toast.type]}
-        ${isExiting ? 'opacity-0 translate-x-full' : 'opacity-100 translate-x-0'}
+        ${currentStyle.bg} ${currentStyle.border}
+        ${isExiting ? 'opacity-0 translate-x-full scale-95' : 'opacity-100 translate-x-0 scale-100'}
+        hover:shadow-2xl hover:scale-[1.02]
       `}
     >
-      <div className="flex-shrink-0">{icons[toast.type]}</div>
-      <div className="flex-1 min-w-0">
-        <p className={`text-sm font-medium ${titleColors[toast.type]}`}>
-          {toast.title}
-        </p>
-        {toast.message && (
-          <p className={`mt-1 text-sm ${messageColors[toast.type]}`}>
-            {toast.message}
+      <div className="flex items-start gap-4 p-4 pr-12">
+        <div className={`flex-shrink-0 mt-0.5 ${currentStyle.icon}`}>
+          {icons[toast.type]}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className={`text-sm font-semibold ${currentStyle.title}`}>
+            {toast.title}
           </p>
-        )}
+          {toast.message && (
+            <p className={`mt-1 text-sm leading-relaxed ${currentStyle.message}`}>
+              {toast.message}
+            </p>
+          )}
+        </div>
+        <button
+          onClick={handleDismiss}
+          className={`
+            absolute top-3 right-3 p-1.5 rounded-lg
+            text-gray-400 hover:text-gray-600 dark:hover:text-gray-200
+            hover:bg-black/5 dark:hover:bg-white/10
+            transition-all duration-200
+            focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600
+          `}
+        >
+          <X className="w-4 h-4" />
+        </button>
       </div>
-      <button
-        onClick={handleDismiss}
-        className="flex-shrink-0 p-1 rounded hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
-      >
-        <X className="w-4 h-4 text-gray-400" />
-      </button>
+      
+      <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/5 dark:bg-white/5">
+        <div
+          className={`h-full ${currentStyle.progress} transition-all duration-100 ease-linear`}
+          style={{ width: `${progress}%` }}
+        />
+      </div>
     </div>
   );
 };
@@ -104,9 +150,9 @@ export const ToastContainer: React.FC<ToastContainerProps> = ({
   if (toasts.length === 0) return null;
 
   return (
-    <div className="fixed top-4 right-4 z-[9999] flex flex-col gap-2 max-w-sm w-full pointer-events-none">
+    <div className="fixed top-6 right-6 z-[9999] flex flex-col gap-3 max-w-md w-full pointer-events-none">
       {toasts.map((toast) => (
-        <div key={toast.id} className="pointer-events-auto">
+        <div key={toast.id} className="pointer-events-auto animate-slide-in">
           <ToastItem toast={toast} onDismiss={onDismiss} />
         </div>
       ))}

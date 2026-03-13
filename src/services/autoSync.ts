@@ -20,8 +20,11 @@ let _debounceTimer: ReturnType<typeof setTimeout> | null = null;
 // Polling timer for pull-from-backend
 let _pollTimer: ReturnType<typeof setInterval> | null = null;
 
+// Visibility change listener reference
+let _visibilityHandler: (() => void) | null = null;
+
 // Polling interval in milliseconds
-const POLL_INTERVAL = 5000;
+const POLL_INTERVAL = 60000;
 
 // Last known backend data fingerprints — skip store update if unchanged
 let _lastHash = {
@@ -256,12 +259,22 @@ export function startAutoSync(): () => void {
   });
   _storeUnsubscribe = unsubscribe;
 
-  // 2. Poll backend every 5s → pull fresh data for cross-device sync
+  // 2. Poll backend every 60s → pull fresh data for cross-device sync
   _pollTimer = setInterval(() => {
-    syncFromBackend();
+    if (!document.hidden) {
+      syncFromBackend();
+    }
   }, POLL_INTERVAL);
 
-  console.log('🔄 Auto-sync started (push debounce: 2s, poll: 5s)');
+  // 3. Sync when page becomes visible again
+  _visibilityHandler = () => {
+    if (!document.hidden) {
+      syncFromBackend();
+    }
+  };
+  document.addEventListener('visibilitychange', _visibilityHandler);
+
+  console.log('🔄 Auto-sync started (push debounce: 2s, poll: 60s)');
   return unsubscribe;
 }
 
@@ -276,6 +289,10 @@ export function stopAutoSync(unsubscribe: () => void): void {
   if (_pollTimer) {
     clearInterval(_pollTimer);
     _pollTimer = null;
+  }
+  if (_visibilityHandler) {
+    document.removeEventListener('visibilitychange', _visibilityHandler);
+    _visibilityHandler = null;
   }
   if (_storeUnsubscribe) {
     _storeUnsubscribe();

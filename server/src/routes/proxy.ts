@@ -29,11 +29,11 @@ function buildApiUrl(baseUrl: string, pathWithVersion: string): string {
   }
 }
 
-// POST /proxy/github/*
-router.post('/proxy/github/*', async (req, res) => {
+// POST /api/proxy/github/*
+router.post('/api/proxy/github/:path(*)', async (req, res) => {
   try {
     const db = getDb();
-    const githubPath = (req.params as Record<string, string>)[0]; // wildcard capture
+    const githubPath = req.params.path; // wildcard capture
     
     // Read and decrypt GitHub token from settings
     const userId = (req as any).user?.id;
@@ -78,8 +78,8 @@ router.post('/proxy/github/*', async (req, res) => {
   }
 });
 
-// POST /proxy/ai
-router.post('/proxy/ai', async (req, res) => {
+// POST /api/proxy/ai
+router.post('/api/proxy/ai', async (req, res) => {
   try {
     const db = getDb();
     const { configId, body: requestBody } = req.body as { configId: string; body: Record<string, unknown> };
@@ -139,8 +139,8 @@ router.post('/proxy/ai', async (req, res) => {
   }
 });
 
-// POST /proxy/webdav
-router.post('/proxy/webdav', async (req, res) => {
+// POST /api/proxy/webdav
+router.post('/api/proxy/webdav', async (req, res) => {
   try {
     const db = getDb();
     const { configId, method, path, body: requestBody, headers: extraHeaders } = req.body as {
