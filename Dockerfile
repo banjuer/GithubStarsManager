@@ -3,9 +3,11 @@ FROM node:18-alpine AS build
 
 WORKDIR /app
 
-# Copy root package files
+# Install build dependencies for native modules
+RUN apk add --no-cache python3 make g++
+
+# Copy package files
 COPY package*.json ./
-# Copy workspace packages
 COPY server/package*.json ./server/
 
 # Install dependencies
@@ -15,10 +17,8 @@ RUN cd server && npm install
 # Copy source code
 COPY . .
 
-# Build the application
-# Frontend
+# Build applications
 RUN npm run build
-# Backend
 RUN cd server && npm run build
 
 # Production stage
@@ -26,17 +26,15 @@ FROM node:18-alpine
 
 WORKDIR /app
 
-# Install native dependencies for better-sqlite3
-RUN apk add --no-cache python3 make g++
+# Install only runtime dependencies
+RUN apk add --no-cache libc6-compat
 
-# Copy built files
+# Copy built files and node_modules with compiled native modules
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/server/dist ./server/dist
+COPY --from=build /app/server/node_modules ./server/node_modules
 COPY --from=build /app/server/package*.json ./server/
 COPY --from=build /app/package*.json ./
-
-# Install only production dependencies for server
-RUN cd server && npm install --omit=dev
 
 # Set environment
 ENV NODE_ENV=production
