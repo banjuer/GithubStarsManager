@@ -7,7 +7,9 @@ import { CategorySidebar } from './components/CategorySidebar';
 import { ReleaseTimeline } from './components/ReleaseTimeline';
 import { SettingsPanel } from './components/SettingsPanel';
 import { UserManagement } from './components/Admin/UserManagement';
+import { ToastContainer } from './components/Toast';
 import { useAppStore } from './store/useAppStore';
+import { useToast } from './store/useToast';
 import { useAutoUpdateCheck } from './components/UpdateChecker';
 import { UpdateNotificationBanner } from './components/UpdateNotificationBanner';
 import { backend } from './services/backendAdapter';
@@ -21,6 +23,8 @@ function App() {
     searchResults,
     repositories 
   } = useAppStore();
+
+  const { toasts, removeToast } = useToast();
 
   const [selectedCategory, setSelectedCategory] = useState('all');
 
@@ -103,6 +107,7 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <ToastContainer toasts={toasts} onDismiss={removeToast} />
       <UpdateNotificationBanner />
       <Header />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

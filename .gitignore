@@ -28,10 +28,8 @@ release
 electron
 
 # Backend server data
-server/data/*.db
-server/data/*.db-shm
-server/data/*.db-wal
-server/data/.encryption-key
+server/data/
+!server/data/.gitkeep
 server/dist/
 
  # Orchestrator internal files

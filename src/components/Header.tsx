@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Star, Settings, Calendar, Search, Moon, Sun, LogOut, RefreshCw, Shield, ChevronDown } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
+import { toast } from '../store/useToast';
 import { backend } from '../services/backendAdapter';
 
 export const Header: React.FC = () => {
@@ -58,21 +59,21 @@ export const Header: React.FC = () => {
       console.log('Sync completed:', result);
       
       if (result.added > 0) {
-        alert(`同步完成！发现 ${result.added} 个新仓库，${result.removed} 个仓库被移除。`);
+        toast.success(t('同步完成', 'Sync Complete'), t(`发现 ${result.added} 个新仓库，${result.removed} 个仓库被移除`, `Found ${result.added} new repos, ${result.removed} repos removed`));
       } else if (result.removed > 0) {
-        alert(`同步完成！${result.removed} 个仓库被移除。`);
+        toast.success(t('同步完成', 'Sync Complete'), t(`${result.removed} 个仓库被移除`, `${result.removed} repos removed`));
       } else {
-        alert('同步完成！所有仓库都是最新的。');
+        toast.success(t('同步完成', 'Sync Complete'), t('所有仓库都是最新的', 'All repositories are up to date'));
       }
       
       window.location.reload();
     } catch (error) {
       console.error('Sync failed:', error);
       if (error instanceof Error && error.message.includes('token')) {
-        alert('GitHub token 已过期或无效，请重新登录。');
+        toast.error(t('认证失败', 'Authentication Failed'), t('GitHub token 已过期或无效，请重新登录', 'GitHub token expired or invalid, please login again'));
         logout();
       } else {
-        alert('同步失败，请检查网络连接。');
+        toast.error(t('同步失败', 'Sync Failed'), t('请检查网络连接', 'Please check your network connection'));
       }
     } finally {
       setLoading(false);
@@ -198,8 +199,6 @@ export const Header: React.FC = () => {
               <div 
                 className="relative"
                 ref={userMenuRef}
-                onMouseEnter={() => setShowUserMenu(true)}
-                onMouseLeave={() => setShowUserMenu(false)}
               >
                 <button 
                   className="flex items-center space-x-2 p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"

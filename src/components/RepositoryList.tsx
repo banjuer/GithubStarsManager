@@ -4,6 +4,7 @@ import { RepositoryCard } from './RepositoryCard';
 
 import { Repository } from '../types';
 import { useAppStore, getAllCategories } from '../store/useAppStore';
+import { toast } from '../store/useToast';
 import { GitHubApiService } from '../services/githubApi';
 import { AIService } from '../services/aiService';
 
@@ -17,7 +18,6 @@ export const RepositoryList: React.FC<RepositoryListProps> = ({
   selectedCategory 
 }) => {
   const {
-    githubToken,
     aiConfigs,
     activeAIConfig,
     isLoading,
@@ -27,7 +27,8 @@ export const RepositoryList: React.FC<RepositoryListProps> = ({
     customCategories,
     analysisProgress,
     setAnalysisProgress,
-    searchFilters
+    searchFilters,
+    backendUser
   } = useAppStore();
 
   const [showAISummary, setShowAISummary] = useState(true);
@@ -114,14 +115,14 @@ export const RepositoryList: React.FC<RepositoryListProps> = ({
   }, [filteredRepositories.length]);
 
   const handleAIAnalyze = async (analyzeUnanalyzedOnly: boolean = false, analyzeFailedOnly: boolean = false) => {
-    if (!githubToken) {
-      alert(language === 'zh' ? 'GitHub token 未找到，请重新登录。' : 'GitHub token not found. Please login again.');
+    if (!backendUser) {
+      toast.error(language === 'zh' ? '请先登录' : 'Please login first');
       return;
     }
 
     const activeConfig = aiConfigs.find(config => config.id === activeAIConfig);
     if (!activeConfig) {
-      alert(language === 'zh' ? '请先在设置中配置AI服务。' : 'Please configure AI service in settings first.');
+      toast.warning(language === 'zh' ? '请先在设置中配置AI服务' : 'Please configure AI service in settings first');
       return;
     }
 
@@ -133,11 +134,11 @@ export const RepositoryList: React.FC<RepositoryListProps> = ({
 
     if (targetRepos.length === 0) {
       const message = analyzeFailedOnly
-        ? (language === 'zh' ? '没有分析失败的仓库！' : 'No failed repositories to re-analyze!')
+        ? (language === 'zh' ? '没有分析失败的仓库' : 'No failed repositories to re-analyze')
         : analyzeUnanalyzedOnly
-          ? (language === 'zh' ? '所有仓库都已经分析过了！' : 'All repositories have been analyzed!')
-          : (language === 'zh' ? '没有可分析的仓库！' : 'No repositories to analyze!');
-      alert(message);
+          ? (language === 'zh' ? '所有仓库都已经分析过了' : 'All repositories have been analyzed')
+          : (language === 'zh' ? '没有可分析的仓库' : 'No repositories to analyze');
+      toast.info(message);
       return;
     }
 
@@ -163,7 +164,7 @@ export const RepositoryList: React.FC<RepositoryListProps> = ({
     setIsPaused(false);
 
     try {
-      const githubApi = new GitHubApiService(githubToken);
+      const githubApi = new GitHubApiService();
       const aiService = new AIService(activeConfig, language);
       
       // 获取自定义分类名称列表
@@ -250,19 +251,24 @@ export const RepositoryList: React.FC<RepositoryListProps> = ({
       
       const completionMessage = shouldStopRef.current
         ? (language === 'zh'
-            ? `AI分析已停止！已成功分析了 ${analyzed} 个仓库。`
-            : `AI analysis stopped! Successfully analyzed ${analyzed} repositories.`)
+            ? `已成功分析 ${analyzed} 个仓库`
+            : `Successfully analyzed ${analyzed} repositories`)
         : (language === 'zh'
-            ? `AI分析完成！成功分析了 ${analyzed} 个仓库。`
-            : `AI analysis completed! Successfully analyzed ${analyzed} repositories.`);
+            ? `已成功分析 ${analyzed} 个仓库`
+            : `Successfully analyzed ${analyzed} repositories`);
       
-      alert(completionMessage);
+      toast.success(
+        shouldStopRef.current 
+          ? (language === 'zh' ? 'AI分析已停止' : 'AI Analysis Stopped')
+          : (language === 'zh' ? 'AI分析完成' : 'AI Analysis Completed'),
+        completionMessage
+      );
     } catch (error) {
       console.error('AI analysis failed:', error);
-      const errorMessage = language === 'zh'
-        ? 'AI分析失败，请检查AI配置和网络连接。'
-        : 'AI analysis failed. Please check AI configuration and network connection.';
-      alert(errorMessage);
+      toast.error(
+        language === 'zh' ? 'AI分析失败' : 'AI Analysis Failed',
+        language === 'zh' ? '请检查AI配置和网络连接' : 'Please check AI configuration and network connection'
+      );
     } finally {
       // 清理状态
       isAnalyzingRef.current = false;

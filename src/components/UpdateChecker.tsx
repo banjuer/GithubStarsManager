@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Download, RefreshCw, ExternalLink, Calendar, Package } from 'lucide-react';
 import { UpdateService, VersionInfo } from '../services/updateService';
 import { useAppStore } from '../store/useAppStore';
+import { toast } from '../store/useToast';
 
 interface UpdateCheckerProps {
   onUpdateAvailable?: (version: VersionInfo) => void;
@@ -37,14 +38,13 @@ export const UpdateChecker: React.FC<UpdateCheckerProps> = ({ onUpdateAvailable 
           dismissed: false
         });
       } else if (!silent) {
-        // 只在手动检查时显示"已是最新版本"的消息
-        alert(t('当前已是最新版本！', 'You are already using the latest version!'));
+        toast.success(t('当前已是最新版本！', 'You are already using the latest version!'));
       }
     } catch (error) {
       const errorMessage = t('检查更新失败，请检查网络连接', 'Failed to check for updates. Please check your network connection.');
       setError(errorMessage);
       if (!silent) {
-        alert(errorMessage);
+        toast.error(t('检查更新失败', 'Update Check Failed'), t('请检查网络连接', 'Please check your network connection'));
       }
       console.error('Update check failed:', error);
     } finally {

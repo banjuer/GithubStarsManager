@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { AIConfig, WebDAVConfig } from '../types';
 import { useAppStore } from '../store/useAppStore';
+import { toast } from '../store/useToast';
 import { AIService } from '../services/aiService';
 import { WebDAVService } from '../services/webdavService';
 import { UpdateChecker } from './UpdateChecker';
@@ -222,7 +223,7 @@ export const SettingsPanel: React.FC = () => {
 
   const handleSaveAI = () => {
     if (!aiForm.name || !aiForm.baseUrl || !aiForm.apiKey || !aiForm.model) {
-      alert(t('请填写所有必填字段', 'Please fill in all required fields'));
+      toast.warning(t('请填写所有必填字段', 'Please fill in all required fields'));
       return;
     }
 
@@ -271,13 +272,13 @@ export const SettingsPanel: React.FC = () => {
       const isConnected = await aiService.testConnection();
       
       if (isConnected) {
-        alert(t('AI服务连接成功！', 'AI service connection successful!'));
+        toast.success(t('AI服务连接成功！', 'AI service connection successful!'));
       } else {
-        alert(t('AI服务连接失败，请检查配置。', 'AI service connection failed. Please check configuration.'));
+        toast.error(t('AI服务连接失败', 'AI service connection failed'), t('请检查配置', 'Please check configuration'));
       }
     } catch (error: any) {
       console.error('AI test failed:', error);
-      alert(t('AI服务测试失败，请检查网络连接和配置。', 'AI service test failed. Please check network connection and configuration.'));
+      toast.error(t('AI服务测试失败', 'AI service test failed'), t('请检查网络连接和配置', 'Please check network connection and configuration'));
     } finally {
       setTestingAIId(null);
     }
@@ -286,7 +287,7 @@ export const SettingsPanel: React.FC = () => {
   const handleSaveWebDAV = () => {
     const errors = WebDAVService.validateConfig(webdavForm);
     if (errors.length > 0) {
-      alert(errors.join('\n'));
+      toast.warning(errors.join('\n'));
       return;
     }
 
@@ -328,13 +329,13 @@ export const SettingsPanel: React.FC = () => {
       const isConnected = await webdavService.testConnection();
       
       if (isConnected) {
-        alert(t('WebDAV连接成功！', 'WebDAV connection successful!'));
+        toast.success(t('WebDAV连接成功！', 'WebDAV connection successful!'));
       } else {
-        alert(t('WebDAV连接失败，请检查配置。', 'WebDAV connection failed. Please check configuration.'));
+        toast.error(t('WebDAV连接失败', 'WebDAV connection failed'), t('请检查配置', 'Please check configuration'));
       }
     } catch (error: any) {
       console.error('WebDAV test failed:', error);
-      alert(`${t('WebDAV测试失败', 'WebDAV test failed')}: ${error.message}`);
+      toast.error(t('WebDAV测试失败', 'WebDAV test failed'), error.message);
     } finally {
       setTestingWebDAVId(null);
     }
@@ -343,7 +344,7 @@ export const SettingsPanel: React.FC = () => {
   const handleBackup = async () => {
     const activeConfig = webdavConfigs.find(config => config.id === activeWebDAVConfig);
     if (!activeConfig) {
-      alert(t('请先配置并激活WebDAV服务。', 'Please configure and activate WebDAV service first.'));
+      toast.warning(t('请先配置并激活WebDAV服务', 'Please configure and activate WebDAV service first'));
       return;
     }
 
@@ -372,11 +373,11 @@ export const SettingsPanel: React.FC = () => {
       
       if (success) {
         setLastBackup(new Date().toISOString());
-        alert(t('数据备份成功！', 'Data backup successful!'));
+        toast.success(t('数据备份成功！', 'Data backup successful!'));
       }
     } catch (error: any) {
       console.error('Backup failed:', error);
-      alert(`${t('备份失败', 'Backup failed')}: ${error.message}`);
+      toast.error(t('备份失败', 'Backup failed'), error.message);
     } finally {
       setIsBackingUp(false);
     }
@@ -385,7 +386,7 @@ export const SettingsPanel: React.FC = () => {
   const handleRestore = async () => {
     const activeConfig = webdavConfigs.find(config => config.id === activeWebDAVConfig);
     if (!activeConfig) {
-      alert(t('请先配置并激活WebDAV服务。', 'Please configure and activate WebDAV service first.'));
+      toast.warning(t('请先配置并激活WebDAV服务', 'Please configure and activate WebDAV service first'));
       return;
     }
 
@@ -403,7 +404,7 @@ export const SettingsPanel: React.FC = () => {
       
       const backupFiles = files.filter(file => file.startsWith('github-stars-backup-'));
       if (backupFiles.length === 0) {
-        alert(t('未找到备份文件。', 'No backup files found.'));
+        toast.warning(t('未找到备份文件', 'No backup files found'));
         return;
       }
 
@@ -499,14 +500,14 @@ export const SettingsPanel: React.FC = () => {
           console.warn('恢复 WebDAV 配置时发生问题：', e);
         }
 
-        alert(t(
-          `已从备份恢复数据：仓库 ${backupData.repositories?.length ?? 0}，发布 ${backupData.releases?.length ?? 0}，自定义分类 ${backupData.customCategories?.length ?? 0}。`,
-          `Data restored from backup: repositories ${backupData.repositories?.length ?? 0}, releases ${backupData.releases?.length ?? 0}, custom categories ${backupData.customCategories?.length ?? 0}.`
+        toast.success(t('数据恢复成功', 'Data Restored'), t(
+          `仓库 ${backupData.repositories?.length ?? 0}，发布 ${backupData.releases?.length ?? 0}，自定义分类 ${backupData.customCategories?.length ?? 0}`,
+          `Repositories ${backupData.repositories?.length ?? 0}, releases ${backupData.releases?.length ?? 0}, custom categories ${backupData.customCategories?.length ?? 0}`
         ));
       }
     } catch (error: any) {
       console.error('Restore failed:', error);
-      alert(`${t('恢复失败', 'Restore failed')}: ${error.message}`);
+      toast.error(t('恢复失败', 'Restore failed'), error.message);
     } finally {
       setIsRestoring(false);
     }
@@ -558,17 +559,17 @@ Focus on practicality and accurate categorization to help users quickly understa
 
   const handleUpdatePassword = async () => {
     if (!newPasswordSync.trim()) {
-      alert(t('请输入新密码', 'Please enter a new password'));
+      toast.warning(t('请输入新密码', 'Please enter a new password'));
       return;
     }
     setIsUpdatingPassword(true);
     try {
       await authService.updateProfile({ password: newPasswordSync });
       setNewPasswordSync('');
-      alert(t('密码更新成功！', 'Password updated successfully!'));
+      toast.success(t('密码更新成功！', 'Password updated successfully!'));
     } catch (error: any) {
       console.error('Update password failed:', error);
-      alert(`${t('更新失败', 'Update failed')}: ${(error as Error).message}`);
+      toast.error(t('更新失败', 'Update failed'), (error as Error).message);
     } finally {
       setIsUpdatingPassword(false);
     }
@@ -576,17 +577,17 @@ Focus on practicality and accurate categorization to help users quickly understa
 
   const handleUpdateGithubToken = async () => {
     if (!githubTokenInput.trim()) {
-      alert(t('请输入GitHub Token', 'Please enter GitHub Token'));
+      toast.warning(t('请输入GitHub Token', 'Please enter GitHub Token'));
       return;
     }
     setIsUpdatingGithubToken(true);
     try {
       await backend.syncSettings({ github_token: githubTokenInput });
       setGithubTokenInput('***' + githubTokenInput.slice(-4));
-      alert(t('GitHub Token 更新成功！', 'GitHub Token updated successfully!'));
+      toast.success(t('GitHub Token 更新成功！', 'GitHub Token updated successfully!'));
     } catch (error: any) {
       console.error('Update GitHub token failed:', error);
-      alert(`${t('更新失败', 'Update failed')}: ${(error as Error).message}`);
+      toast.error(t('更新失败', 'Update failed'), (error as Error).message);
     } finally {
       setIsUpdatingGithubToken(false);
     }
@@ -604,10 +605,10 @@ Focus on practicality and accurate categorization to help users quickly understa
           apprise_url: updated.appriseUrl || null
         } : null
       }));
-      alert(t('通知URL更新成功！', 'Notification URL updated successfully!'));
+      toast.success(t('通知URL更新成功！', 'Notification URL updated successfully!'));
     } catch (error: any) {
       console.error('Update apprise failed:', error);
-      alert(`${t('更新失败', 'Update failed')}: ${(error as Error).message}`);
+      toast.error(t('更新失败', 'Update failed'), (error as Error).message);
     } finally {
       setIsUpdatingApprise(false);
     }
@@ -630,10 +631,10 @@ Focus on practicality and accurate categorization to help users quickly understa
         throw new Error(data.error || 'Test notification failed');
       }
 
-      alert(t('测试通知发送成功！', 'Test notification sent successfully!'));
+      toast.success(t('测试通知发送成功！', 'Test notification sent successfully!'));
     } catch (error: any) {
       console.error('Test notification failed:', error);
-      alert(`${t('测试通知失败', 'Test notification failed')}: ${error.message}`);
+      toast.error(t('测试通知失败', 'Test notification failed'), error.message);
     } finally {
       setIsTestingApprise(false);
     }
@@ -658,10 +659,10 @@ Focus on practicality and accurate categorization to help users quickly understa
 
       const updatedTask = await response.json();
       setScheduledTasks(prev => prev.map(t => t.task_type === taskType ? updatedTask : t));
-      alert(t('定时任务更新成功！', 'Scheduled task updated successfully!'));
+      toast.success(t('定时任务更新成功！', 'Scheduled task updated successfully!'));
     } catch (error: any) {
       console.error('Update task failed:', error);
-      alert(`${t('更新失败', 'Update failed')}: ${error.message}`);
+      toast.error(t('更新失败', 'Update failed'), error.message);
     } finally {
       setIsUpdatingTask(null);
     }
@@ -684,10 +685,10 @@ Focus on practicality and accurate categorization to help users quickly understa
         throw new Error(data.error || 'Failed to update preferences');
       }
 
-      alert(t('通知偏好更新成功！', 'Notification preferences updated successfully!'));
+      toast.success(t('通知偏好更新成功！', 'Notification preferences updated successfully!'));
     } catch (error: any) {
       console.error('Update notification preferences failed:', error);
-      alert(`${t('更新失败', 'Update failed')}: ${error.message}`);
+      toast.error(t('更新失败', 'Update failed'), error.message);
     } finally {
       setIsUpdatingPrefs(false);
     }

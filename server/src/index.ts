@@ -28,10 +28,10 @@ export function createApp(): express.Express {
       directives: {
         defaultSrc: ["'self'"],
         scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
-        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdnjs.cloudflare.com"],
-        fontSrc: ["'self'", "https://fonts.gstatic.com", "https://cdnjs.cloudflare.com"],
+        styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.bootcdn.net", "https://cdnjs.cloudflare.com"],
+        fontSrc: ["'self'", "https://cdn.bootcdn.net", "https://cdnjs.cloudflare.com"],
         imgSrc: ["'self'", "data:", "https:", "blob:"],
-        connectSrc: ["'self'", "https://api.github.com", "https://avatars.githubusercontent.com"],
+        connectSrc: ["'self'", "https://api.github.com", "https://avatars.githubusercontent.com", "https://cdn.bootcdn.net"],
         frameSrc: ["'self'"],
         objectSrc: ["'none'"],
         upgradeInsecureRequests: [],

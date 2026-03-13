@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Star, GitFork, Eye, ExternalLink, Calendar, Tag, Bell, BellOff, Bot, Monitor, Smartphone, Globe, Terminal, Package, Edit3, BookOpen, Apple, Zap } from 'lucide-react';
 import { Repository } from '../types';
 import { useAppStore, getAllCategories } from '../store/useAppStore';
+import { toast } from '../store/useToast';
 import { GitHubApiService } from '../services/githubApi';
 import { AIService } from '../services/aiService';
 import { formatDistanceToNow } from 'date-fns';
@@ -21,7 +22,6 @@ export const RepositoryCard: React.FC<RepositoryCardProps> = ({
   const {
     releaseSubscriptions,
     toggleReleaseSubscription,
-    githubToken,
     aiConfigs,
     activeAIConfig,
     isLoading,
@@ -29,7 +29,8 @@ export const RepositoryCard: React.FC<RepositoryCardProps> = ({
     language,
     customCategories,
     updateRepository,
-    deleteRepository
+    deleteRepository,
+    backendUser
   } = useAppStore();
 
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -156,14 +157,14 @@ export const RepositoryCard: React.FC<RepositoryCardProps> = ({
   };
 
   const handleAIAnalyze = async () => {
-    if (!githubToken) {
-      alert('GitHub token not found. Please login again.');
+    if (!backendUser) {
+      toast.error(language === 'zh' ? '请先登录' : 'Please login first');
       return;
     }
 
     const activeConfig = aiConfigs.find(config => config.id === activeAIConfig);
     if (!activeConfig) {
-      alert(language === 'zh' ? '请先在设置中配置AI服务。' : 'Please configure AI service in settings first.');
+      toast.warning(language === 'zh' ? '请先在设置中配置AI服务' : 'Please configure AI service in settings first');
       return;
     }
 
@@ -180,7 +181,7 @@ export const RepositoryCard: React.FC<RepositoryCardProps> = ({
 
     setLoading(true);
     try {
-      const githubApi = new GitHubApiService(githubToken);
+      const githubApi = new GitHubApiService();
       const aiService = new AIService(activeConfig, language);
 
       // 获取README内容
@@ -205,11 +206,11 @@ export const RepositoryCard: React.FC<RepositoryCardProps> = ({
 
       updateRepository(updatedRepo);
 
-      const successMessage = repository.analyzed_at
-        ? (language === 'zh' ? 'AI重新分析完成！' : 'AI re-analysis completed!')
-        : (language === 'zh' ? 'AI分析完成！' : 'AI analysis completed!');
-
-      alert(successMessage);
+      toast.success(
+        repository.analyzed_at
+          ? (language === 'zh' ? 'AI重新分析完成' : 'AI Re-analysis Completed')
+          : (language === 'zh' ? 'AI分析完成' : 'AI Analysis Completed')
+      );
     } catch (error) {
       console.error('AI analysis failed:', error);
       
@@ -222,7 +223,7 @@ export const RepositoryCard: React.FC<RepositoryCardProps> = ({
       
       updateRepository(failedRepo);
       
-      alert(language === 'zh' ? 'AI分析失败，请检查AI配置和网络连接。' : 'AI analysis failed. Please check AI configuration and network connection.');
+      toast.error(language === 'zh' ? 'AI分析失败' : 'AI Analysis Failed', language === 'zh' ? '请检查AI配置和网络连接' : 'Please check AI configuration and network connection');
     } finally {
       setLoading(false);
     }
@@ -314,8 +315,8 @@ export const RepositoryCard: React.FC<RepositoryCardProps> = ({
   const t = (zh: string, en: string) => language === 'zh' ? zh : en;
 
   const handleUnstar = async () => {
-    if (!githubToken) {
-      alert(t('未找到 GitHub Token，请重新登录。', 'GitHub token not found. Please login again.'));
+    if (!backendUser) {
+      toast.error(t('请先登录', 'Please login first'));
       return;
     }
 
@@ -329,20 +330,14 @@ export const RepositoryCard: React.FC<RepositoryCardProps> = ({
 
     setUnstarring(true);
     try {
-      const githubApi = new GitHubApiService(githubToken);
+      const githubApi = new GitHubApiService();
       const [owner, repo] = repository.full_name.split('/');
       await githubApi.unstarRepository(owner, repo);
       deleteRepository(repository.id);
-      const successMessage = language === 'zh'
-        ? '已成功取消 Star'
-        : 'Successfully unstarred';
-      alert(successMessage);
+      toast.success(t('已成功取消 Star', 'Successfully unstarred'));
     } catch (error) {
       console.error('Failed to unstar repository:', error);
-      const errorMessage = language === 'zh'
-        ? '取消 Star 失败，请检查网络连接或重新登录。'
-        : 'Failed to unstar repository. Please check your network connection or login again.';
-      alert(errorMessage);
+      toast.error(t('取消 Star 失败', 'Unstar Failed'), t('请检查网络连接或重新登录', 'Please check your network connection or login again'));
     } finally {
       setUnstarring(false);
     }

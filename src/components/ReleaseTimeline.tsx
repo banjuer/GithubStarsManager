@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { ExternalLink, GitBranch, Calendar, Package, Bell, Search, X, RefreshCw, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Eye, EyeOff, Download, ChevronDown } from 'lucide-react';
 import { Release } from '../types';
 import { useAppStore } from '../store/useAppStore';
+import { toast } from '../store/useToast';
 import { GitHubApiService } from '../services/githubApi';
 import { formatDistanceToNow, format } from 'date-fns';
 import { AssetFilterManager } from './AssetFilterManager';
@@ -12,7 +13,6 @@ export const ReleaseTimeline: React.FC = () => {
     repositories, 
     releaseSubscriptions, 
     readReleases,
-    githubToken, 
     language,
     assetFilters,
     setReleases,
@@ -172,7 +172,7 @@ export const ReleaseTimeline: React.FC = () => {
       const subscribedRepos = repositories.filter(repo => releaseSubscriptions.has(repo.id));
       
       if (subscribedRepos.length === 0) {
-        alert(language === 'zh' ? '没有订阅的仓库。' : 'No subscribed repositories.');
+        toast.warning(language === 'zh' ? '没有订阅的仓库' : 'No subscribed repositories');
         return;
       }
 
@@ -220,16 +220,16 @@ export const ReleaseTimeline: React.FC = () => {
       setLastRefreshTime(now);
 
       const message = language === 'zh'
-        ? `刷新完成！发现 ${newReleasesCount} 个新Release。`
-        : `Refresh completed! Found ${newReleasesCount} new releases.`;
+        ? `发现 ${newReleasesCount} 个新Release`
+        : `Found ${newReleasesCount} new releases`;
       
-      alert(message);
+      toast.success(language === 'zh' ? '刷新完成' : 'Refresh Completed', message);
     } catch (error) {
       console.error('Refresh failed:', error);
       const errorMessage = language === 'zh'
-        ? 'Release刷新失败，请检查网络连接。'
-        : 'Release refresh failed. Please check your network connection.';
-      alert(errorMessage);
+        ? '请检查网络连接'
+        : 'Please check your network connection';
+      toast.error(language === 'zh' ? 'Release刷新失败' : 'Release Refresh Failed', errorMessage);
     } finally {
       setIsRefreshing(false);
     }

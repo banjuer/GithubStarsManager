@@ -3,6 +3,7 @@ import { Save, X, Plus } from 'lucide-react';
 import { Modal } from './Modal';
 import { Category } from '../types';
 import { useAppStore } from '../store/useAppStore';
+import { toast } from '../store/useToast';
 
 // Complete emoji collection for categories
 const availableIcons = [
@@ -820,7 +821,7 @@ export const CategoryEditModal: React.FC<CategoryEditModalProps> = ({
 
   const handleSave = () => {
     if (!formData.name.trim()) {
-      alert(language === 'zh' ? '请输入分类名称' : 'Please enter category name');
+      toast.warning(language === 'zh' ? '请输入分类名称' : 'Please enter category name');
       return;
     }
 
