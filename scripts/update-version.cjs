@@ -94,13 +94,23 @@ function updateVersionInfo() {
 }
 
 function updatePackageJson(version) {
+  // 更新根目录 package.json
   const packagePath = path.join(__dirname, '../package.json');
   const packageJson = JSON.parse(fs.readFileSync(packagePath, 'utf8'));
-
   packageJson.version = version;
-
   fs.writeFileSync(packagePath, JSON.stringify(packageJson, null, 2) + '\n');
   console.log(`📦 已更新 package.json 版本到 ${version}`);
+
+  // 更新 server/package.json
+  const serverPackagePath = path.join(__dirname, '../server/package.json');
+  try {
+    const serverPackageJson = JSON.parse(fs.readFileSync(serverPackagePath, 'utf8'));
+    serverPackageJson.version = version;
+    fs.writeFileSync(serverPackagePath, JSON.stringify(serverPackageJson, null, 2) + '\n');
+    console.log(`📦 已更新 server/package.json 版本到 ${version}`);
+  } catch (error) {
+    console.warn(`⚠️ 更新 server/package.json 失败: ${error.message}`);
+  }
 }
 
 function updateVersionXML(version, changelog, customDownloadUrl) {
