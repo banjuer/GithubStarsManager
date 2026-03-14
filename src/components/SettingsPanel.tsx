@@ -28,6 +28,7 @@ import { toast } from '../store/useToast';
 import { AIService } from '../services/aiService';
 import { WebDAVService } from '../services/webdavService';
 import { UpdateChecker } from './UpdateChecker';
+import { APITokenManager } from './APITokenManager';
 import { backend } from '../services/backendAdapter';
 import { authService } from '../services/auth';
 
@@ -1239,7 +1240,10 @@ Focus on practicality and accurate categorization to help users quickly understa
         )}
       </div>
 
-      {/* 3. Scheduled Tasks */}
+      {/* 3. API Token Management */}
+      {backend.isAvailable && <APITokenManager />}
+
+      {/* 4. Scheduled Tasks */}
       {backend.isAvailable && scheduledTasks.length > 0 && (
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
           <div className="flex items-center space-x-3 mb-6">

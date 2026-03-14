@@ -13,6 +13,9 @@ dist
 dist-ssr
 *.local
 
+# Vite cache
+vite.config.ts.timestamp-*
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
@@ -28,6 +31,7 @@ release
 electron
 
 # Backend server data
+data/
 server/data/
 !server/data/.gitkeep
 server/dist/

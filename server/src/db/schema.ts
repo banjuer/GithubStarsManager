@@ -110,5 +110,17 @@ export function initializeSchema(db: Database.Database): void {
       updated_at TEXT NOT NULL DEFAULT (datetime('now')),
       PRIMARY KEY (user_id, key)
     );
+
+    CREATE TABLE IF NOT EXISTS api_tokens (
+      id TEXT PRIMARY KEY,
+      user_id INTEGER NOT NULL,
+      name TEXT NOT NULL,
+      token_hash TEXT NOT NULL UNIQUE,
+      permissions TEXT DEFAULT 'read',
+      last_used_at TEXT,
+      expires_at TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
   `);
 }

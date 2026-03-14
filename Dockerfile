@@ -3,49 +3,46 @@ FROM node:18-alpine AS build
 
 WORKDIR /app
 
-# Install build dependencies for native modules
 RUN apk add --no-cache python3 make g++
 
-# Copy package files
 COPY package*.json ./
 COPY server/package*.json ./server/
 
-# Install dependencies
-RUN npm install
-RUN cd server && npm install
+RUN npm ci --only=production=false
+RUN cd server && npm ci --only=production=false
 
-# Copy source code
 COPY . .
 
-# Build applications
 RUN npm run build
 RUN cd server && npm run build
 
-# Production stage
+RUN npm prune --production
+RUN cd server && npm prune --production
+
 FROM node:18-alpine
 
 WORKDIR /app
 
-# Install only runtime dependencies
-RUN apk add --no-cache libc6-compat
+RUN apk add --no-cache dumb-init
 
-# Copy built files and node_modules with compiled native modules
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/server/dist ./server/dist
 COPY --from=build /app/server/node_modules ./server/node_modules
 COPY --from=build /app/server/package*.json ./server/
 COPY --from=build /app/package*.json ./
 
-# Set environment
+RUN rm -rf /var/cache/apk/* /tmp/*
+
 ENV NODE_ENV=production
 ENV DATA_DIR=/app/data
 ENV PORT=3000
 
-# Volume for data persistence
 VOLUME /app/data
 
-# Expose port
 EXPOSE 3000
 
-# Start server
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:3000/api/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
+
+ENTRYPOINT ["dumb-init", "--"]
 CMD ["node", "server/dist/index.js"]

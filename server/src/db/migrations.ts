@@ -110,6 +110,25 @@ const migrations: Record<number, (db: Database.Database) => void> = {
         console.error('Error in migration v5:', e.message);
       }
     }
+  },
+  6: (db) => {
+    try {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS api_tokens (
+          id TEXT PRIMARY KEY,
+          user_id INTEGER NOT NULL,
+          name TEXT NOT NULL,
+          token_hash TEXT NOT NULL UNIQUE,
+          permissions TEXT DEFAULT 'read',
+          last_used_at TEXT,
+          expires_at TEXT,
+          created_at TEXT NOT NULL DEFAULT (datetime('now')),
+          FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        );
+      `);
+    } catch (e: any) {
+      console.error('Error in migration v6:', e.message);
+    }
   }
 };
 
