@@ -1,14 +1,14 @@
+**Modified points:**
+* Support web deployment and have back-end API
+* User management
+---
+
 <div align="center">
 
 ![Logo](upload/logo.png)
 
 # GithubStarsManager
 
----
-Modified points:
-1. Support web deployment and have back-end API
-2. Optimize image size
----
 
 ![100% 本地数据](https://img.shields.io/badge/数据存储-100%25本地-success?style=flat&logo=database&logoColor=white) ![AI 支持](https://img.shields.io/badge/AI-支持多模型-blue?style=flat&logo=openai&logoColor=white) ![全平台](https://img.shields.io/badge/平台-Windows%20%7C%20macOS%20%7C%20Linux-purple?style=flat&logo=electron&logoColor=white)
 
