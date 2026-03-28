@@ -1,6 +1,7 @@
 import { translateBackendError } from '../utils/backendErrors';
 
 import { Repository, Release, AIConfig, WebDAVConfig } from '../types';
+import { useAppStore } from '../store/useAppStore';
 
 class BackendAdapter {
   private _backendUrl: string = '/api';
@@ -19,15 +20,9 @@ class BackendAdapter {
   }
 
   private getAuthHeaders(): Record<string, string> {
-    // Read from localStorage directly to avoid circular dependency with store
-    const storeData = localStorage.getItem('github-stars-manager');
-    let secret = '';
-    if (storeData) {
-      try {
-        const parsed = JSON.parse(storeData);
-        secret = parsed.state?.backendApiSecret || '';
-      } catch { /* ignore */ }
-    }
+    // Get token directly from store state (more reliable than localStorage)
+    const state = useAppStore.getState();
+    const secret = state.backendApiSecret || '';
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',

@@ -1244,7 +1244,7 @@ Focus on practicality and accurate categorization to help users quickly understa
       {backend.isAvailable && <APITokenManager />}
 
       {/* 4. Scheduled Tasks */}
-      {backend.isAvailable && scheduledTasks.length > 0 && (
+      {backend.isAvailable && (
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
           <div className="flex items-center space-x-3 mb-6">
             <Clock className="w-6 h-6 text-teal-600 dark:text-teal-400" />
@@ -1253,6 +1253,13 @@ Focus on practicality and accurate categorization to help users quickly understa
             </h3>
           </div>
 
+          {scheduledTasks.length === 0 ? (
+            <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+              <Clock className="w-12 h-12 mx-auto mb-3 opacity-50" />
+              <p>{t('暂无定时任务', 'No scheduled tasks')}</p>
+              <p className="text-sm mt-1">{t('刷新页面后自动创建默认任务', 'Refresh page to auto-create default tasks')}</p>
+            </div>
+          ) : (
           <div className="space-y-4">
             {scheduledTasks.map(task => (
               <div key={task.id} className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
@@ -1316,6 +1323,7 @@ Focus on practicality and accurate categorization to help users quickly understa
               </div>
             ))}
           </div>
+          )}
           
           <p className="mt-4 text-xs text-gray-500 dark:text-gray-400">
             {t(

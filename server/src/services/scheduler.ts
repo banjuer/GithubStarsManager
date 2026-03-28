@@ -146,7 +146,9 @@ async function syncStars(userId: number): Promise<void> {
     });
     
     if (!response.ok) {
-      throw new Error(`GitHub API error: ${response.status}`);
+      const errorText = await response.text().catch(() => 'Unknown error');
+      console.error(`GitHub API error: ${response.status}`, errorText);
+      throw new Error(`GitHub API error: ${response.status} - ${errorText}`);
     }
     
     const stars = await response.json() as any[];
@@ -181,7 +183,7 @@ async function syncStars(userId: number): Promise<void> {
   }
   
   const insertRepo = db.prepare(`
-    INSERT INTO repositories (
+    INSERT OR REPLACE INTO repositories (
       id, user_id, name, full_name, description, html_url, stargazers_count,
       language, created_at, updated_at, pushed_at, starred_at, owner_login, owner_avatar_url, topics
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -609,7 +611,7 @@ export async function syncStarsManually(userId: number): Promise<{ added: number
   }
   
   const insertRepo = db.prepare(`
-    INSERT INTO repositories (
+    INSERT OR REPLACE INTO repositories (
       id, user_id, name, full_name, description, html_url, stargazers_count,
       language, created_at, updated_at, pushed_at, starred_at, owner_login, owner_avatar_url, topics
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)

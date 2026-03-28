@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import { getDb } from '../db/connection.js';
 import { config } from '../config.js';
 import { authMiddleware } from '../middleware/auth.js';
+import { scheduleTask } from '../services/scheduler.js';
 
 const router = Router();
 
@@ -48,6 +49,30 @@ router.post('/register', async (req, res) => {
     ).run(email, username, passwordHash, role, display_name || null);
 
     const newUserId = insertResult.lastInsertRowid;
+
+    // 为新用户创建默认定时任务和通知偏好设置
+    const defaultTasks = [
+      { task_type: 'sync_stars', cron_expression: '0 */6 * * *' },
+      { task_type: 'check_releases', cron_expression: '0 * * * *' }
+    ];
+    
+    const insertTask = db.prepare('INSERT INTO scheduled_tasks (id, user_id, task_type, enabled, cron_expression) VALUES (?, ?, ?, 1, ?)');
+    for (const task of defaultTasks) {
+      const taskId = `${newUserId}_${task.task_type}`;
+      insertTask.run(taskId, newUserId, task.task_type, task.cron_expression);
+      // 动态调度新任务
+      scheduleTask({
+        id: taskId,
+        user_id: newUserId as number,
+        task_type: task.task_type as 'sync_stars' | 'check_releases',
+        enabled: 1,
+        cron_expression: task.cron_expression,
+        last_run: null,
+        next_run: null
+      });
+    }
+    
+    db.prepare('INSERT INTO notification_preferences (user_id, notify_new_release, notify_star_added, notify_star_removed) VALUES (?, 1, 1, 1)').run(newUserId);
 
     if (github_token) {
       const { encrypt } = await import('../services/crypto.js');

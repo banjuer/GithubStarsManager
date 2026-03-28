@@ -93,9 +93,12 @@ router.post('/api/sync/stars', async (req, res) => {
     
     const result = await syncStarsManually(userId);
     res.json({ success: true, ...result });
-  } catch (err) {
+  } catch (err: any) {
     console.error('POST /api/sync/stars error:', err);
-    res.status(500).json({ error: 'Failed to sync stars', code: 'SYNC_STARS_FAILED' });
+    res.status(500).json({ 
+      error: err.message || 'Failed to sync stars', 
+      code: 'SYNC_STARS_FAILED' 
+    });
   }
 });
 
