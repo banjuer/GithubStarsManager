@@ -3,7 +3,7 @@ import { getDb } from '../db/connection.js';
 import { encrypt, decrypt } from '../services/crypto.js';
 import { config } from '../config.js';
 import { sendNotification } from '../services/notification.js';
-import { getUserTasks, updateUserTask, getNotificationPreferences, updateNotificationPreferences } from '../services/scheduler.js';
+import { getUserTasks, updateUserTask, getNotificationPreferences, updateNotificationPreferences, scheduleTask } from '../services/scheduler.js';
 
 const router = Router();
 
@@ -494,6 +494,42 @@ router.get('/api/scheduled-tasks', (req, res) => {
   try {
     const userId = req.user?.id;
     if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+    // 自动检查并创建缺失的定时任务和通知偏好
+    const db = getDb();
+    const existingTasks = db.prepare('SELECT COUNT(*) as count FROM scheduled_tasks WHERE user_id = ?').get(userId) as { count: number };
+    
+    if (existingTasks.count === 0) {
+      // 创建默认任务
+      const defaultTasks = [
+        { task_type: 'sync_stars', cron_expression: '0 */6 * * *' },
+        { task_type: 'check_releases', cron_expression: '0 * * * *' }
+      ];
+      
+      const insertTask = db.prepare('INSERT INTO scheduled_tasks (id, user_id, task_type, enabled, cron_expression) VALUES (?, ?, ?, 1, ?)');
+      for (const task of defaultTasks) {
+        const taskId = `${userId}_${task.task_type}`;
+        insertTask.run(taskId, userId, task.task_type, task.cron_expression);
+        // 动态调度新任务
+        scheduleTask({
+          id: taskId,
+          user_id: userId,
+          task_type: task.task_type as 'sync_stars' | 'check_releases',
+          enabled: 1,
+          cron_expression: task.cron_expression,
+          last_run: null,
+          next_run: null
+        });
+      }
+      console.log(`Auto-created scheduled tasks for user ${userId}`);
+    }
+    
+    // 检查通知偏好
+    const existingPref = db.prepare('SELECT COUNT(*) as count FROM notification_preferences WHERE user_id = ?').get(userId) as { count: number };
+    if (existingPref.count === 0) {
+      db.prepare('INSERT INTO notification_preferences (user_id, notify_new_release, notify_star_added, notify_star_removed) VALUES (?, 1, 1, 1)').run(userId);
+      console.log(`Auto-created notification preferences for user ${userId}`);
+    }
 
     const tasks = getUserTasks(userId);
     res.json(tasks);

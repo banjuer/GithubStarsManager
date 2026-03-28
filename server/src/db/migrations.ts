@@ -129,6 +129,37 @@ const migrations: Record<number, (db: Database.Database) => void> = {
     } catch (e: any) {
       console.error('Error in migration v6:', e.message);
     }
+  },
+  7: (db) => {
+    try {
+      // 为缺少定时任务的用户创建默认任务
+      const users = db.prepare('SELECT id FROM users').all() as { id: number }[];
+      const defaultTasks = [
+        { task_type: 'sync_stars', cron_expression: '0 */6 * * *' },
+        { task_type: 'check_releases', cron_expression: '0 * * * *' }
+      ];
+      
+      const insertTask = db.prepare('INSERT OR IGNORE INTO scheduled_tasks (id, user_id, task_type, enabled, cron_expression) VALUES (?, ?, ?, 1, ?)');
+      const insertPref = db.prepare('INSERT OR IGNORE INTO notification_preferences (user_id, notify_new_release, notify_star_added, notify_star_removed) VALUES (?, 1, 1, 1)');
+      
+      for (const user of users) {
+        // 创建通知偏好（如果不存在）
+        insertPref.run(user.id);
+        
+        // 检查用户是否已有定时任务
+        const existingTasks = db.prepare('SELECT COUNT(*) as count FROM scheduled_tasks WHERE user_id = ?').get(user.id) as { count: number };
+        
+        // 如果没有任务，创建默认任务
+        if (existingTasks.count === 0) {
+          for (const task of defaultTasks) {
+            insertTask.run(`${user.id}_${task.task_type}`, user.id, task.task_type, task.cron_expression);
+          }
+          console.log(`Created default scheduled tasks for user ${user.id}`);
+        }
+      }
+    } catch (e: any) {
+      console.error('Error in migration v7:', e.message);
+    }
   }
 };
 

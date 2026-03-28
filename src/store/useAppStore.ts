@@ -1,5 +1,17 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
+
+// 用于通知 App 组件 rehydrate 完成
+let _onRehydrateCallbacks: (() => void)[] = [];
+export const onRehydrate = (cb: () => void) => {
+  _onRehydrateCallbacks.push(cb);
+  return () => {
+    _onRehydrateCallbacks = _onRehydrateCallbacks.filter(c => c !== cb);
+  };
+};
+
+// 获取 store 当前状态（用于回调中）
+export const getStoreState = () => useAppStore.getState();
 import { AppState, Repository, Release, AIConfig, WebDAVConfig, SearchFilters, GitHubUser, Category, AssetFilter, UpdateNotification, AnalysisProgress } from '../types';
 import { indexedDBStorage } from '../services/indexedDbStorage';
 
@@ -522,6 +534,10 @@ export const useAppStore = create<AppState & AppActions>()(
           ...currentState,
           ...normalized,
         };
+      },
+      onRehydrateStorage: () => {
+        console.log('Store rehydrate complete, triggering callbacks...');
+        _onRehydrateCallbacks.forEach(cb => cb());
       },
     }
   )

@@ -18,6 +18,7 @@ import { syncFromBackend, startAutoSync, stopAutoSync } from './services/autoSyn
 function App() {
   const { 
     isAuthenticated, 
+    backendApiSecret,
     currentView, 
     theme,
     searchResults,
@@ -49,6 +50,7 @@ function App() {
       try {
         await backend.init();
         if (backend.isAvailable && !cancelled) {
+          console.log('Syncing from backend...');
           await syncFromBackend();
           if (!cancelled) {
             unsubscribe = startAutoSync();
@@ -59,7 +61,10 @@ function App() {
       }
     };
 
-    initBackend();
+    // Try to init when backendApiSecret is available (login or rehydrate)
+    if (backendApiSecret) {
+      initBackend();
+    }
 
     return () => {
       cancelled = true;
@@ -67,7 +72,7 @@ function App() {
         stopAutoSync(unsubscribe);
       }
     };
-  }, []);
+  }, [backendApiSecret]);
 
   // Show login screen if not authenticated
   if (!isAuthenticated) {
