@@ -182,35 +182,56 @@ async function syncStars(userId: number): Promise<void> {
     removedStars.push(fullName);
   }
   
-  const insertRepo = db.prepare(`
-    INSERT OR REPLACE INTO repositories (
-      id, user_id, name, full_name, description, html_url, stargazers_count,
-      language, created_at, updated_at, pushed_at, starred_at, owner_login, owner_avatar_url, topics
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `);
+  // 批量插入优化：使用事务批量处理
+  const BATCH_SIZE = 100;
   
-  for (const repo of newStars) {
-    insertRepo.run(
-      repo.id,
-      userId,
-      repo.name,
-      repo.full_name,
-      repo.description,
-      repo.html_url,
-      repo.stargazers_count,
-      repo.language,
-      repo.created_at,
-      repo.updated_at,
-      repo.pushed_at,
-      new Date().toISOString(),
-      repo.owner?.login,
-      repo.owner?.avatar_url,
-      JSON.stringify(repo.topics || [])
-    );
+  if (newStars.length > 0) {
+    const insertRepo = db.prepare(`
+      INSERT OR REPLACE INTO repositories (
+        id, user_id, name, full_name, description, html_url, stargazers_count,
+        language, created_at, updated_at, pushed_at, starred_at, owner_login, owner_avatar_url, topics
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    
+    // 分批处理，每批 100 条
+    for (let i = 0; i < newStars.length; i += BATCH_SIZE) {
+      const batch = newStars.slice(i, i + BATCH_SIZE);
+      
+      const insertBatch = db.transaction((repos: any[]) => {
+        for (const repo of repos) {
+          insertRepo.run(
+            repo.id,
+            userId,
+            repo.name,
+            repo.full_name,
+            repo.description,
+            repo.html_url,
+            repo.stargazers_count,
+            repo.language,
+            repo.created_at,
+            repo.updated_at,
+            repo.pushed_at,
+            new Date().toISOString(),
+            repo.owner?.login,
+            repo.owner?.avatar_url,
+            JSON.stringify(repo.topics || [])
+          );
+        }
+      });
+      
+      insertBatch(batch);
+    }
   }
   
-  for (const fullName of removedStars) {
-    db.prepare('DELETE FROM repositories WHERE user_id = ? AND full_name = ?').run(userId, fullName);
+  // 批量删除
+  if (removedStars.length > 0) {
+    const deleteStmt = db.prepare('DELETE FROM repositories WHERE user_id = ? AND full_name = ?');
+    const deleteBatch = db.transaction((fullNames: string[]) => {
+      for (const fullName of fullNames) {
+        deleteStmt.run(userId, fullName);
+      }
+    });
+    deleteBatch(removedStars);
   }
   
   console.log(`Synced stars for user ${userId}: ${newStars.length} added, ${removedStars.length} removed`);
@@ -610,35 +631,56 @@ export async function syncStarsManually(userId: number): Promise<{ added: number
     removedStars.push(fullName);
   }
   
-  const insertRepo = db.prepare(`
-    INSERT OR REPLACE INTO repositories (
-      id, user_id, name, full_name, description, html_url, stargazers_count,
-      language, created_at, updated_at, pushed_at, starred_at, owner_login, owner_avatar_url, topics
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `);
+  // 批量插入优化：使用事务批量处理
+  const BATCH_SIZE = 100;
   
-  for (const repo of newStars) {
-    insertRepo.run(
-      repo.id,
-      userId,
-      repo.name,
-      repo.full_name,
-      repo.description,
-      repo.html_url,
-      repo.stargazers_count,
-      repo.language,
-      repo.created_at,
-      repo.updated_at,
-      repo.pushed_at,
-      new Date().toISOString(),
-      repo.owner?.login,
-      repo.owner?.avatar_url,
-      JSON.stringify(repo.topics || [])
-    );
+  if (newStars.length > 0) {
+    const insertRepo = db.prepare(`
+      INSERT OR REPLACE INTO repositories (
+        id, user_id, name, full_name, description, html_url, stargazers_count,
+        language, created_at, updated_at, pushed_at, starred_at, owner_login, owner_avatar_url, topics
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    
+    // 分批处理，每批 100 条
+    for (let i = 0; i < newStars.length; i += BATCH_SIZE) {
+      const batch = newStars.slice(i, i + BATCH_SIZE);
+      
+      const insertBatch = db.transaction((repos: any[]) => {
+        for (const repo of repos) {
+          insertRepo.run(
+            repo.id,
+            userId,
+            repo.name,
+            repo.full_name,
+            repo.description,
+            repo.html_url,
+            repo.stargazers_count,
+            repo.language,
+            repo.created_at,
+            repo.updated_at,
+            repo.pushed_at,
+            new Date().toISOString(),
+            repo.owner?.login,
+            repo.owner?.avatar_url,
+            JSON.stringify(repo.topics || [])
+          );
+        }
+      });
+      
+      insertBatch(batch);
+    }
   }
   
-  for (const fullName of removedStars) {
-    db.prepare('DELETE FROM repositories WHERE user_id = ? AND full_name = ?').run(userId, fullName);
+  // 批量删除
+  if (removedStars.length > 0) {
+    const deleteStmt = db.prepare('DELETE FROM repositories WHERE user_id = ? AND full_name = ?');
+    const deleteBatch = db.transaction((fullNames: string[]) => {
+      for (const fullName of fullNames) {
+        deleteStmt.run(userId, fullName);
+      }
+    });
+    deleteBatch(removedStars);
   }
   
   console.log(`Manual sync for user ${userId}: ${newStars.length} added, ${removedStars.length} removed`);

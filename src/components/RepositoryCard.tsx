@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, memo, useMemo } from 'react';
 import { Star, GitFork, Eye, ExternalLink, Calendar, Tag, Bell, BellOff, Bot, Monitor, Smartphone, Globe, Terminal, Package, Edit3, BookOpen, Apple, Zap } from 'lucide-react';
 import { Repository } from '../types';
 import { useAppStore, getAllCategories } from '../store/useAppStore';
@@ -14,7 +14,7 @@ interface RepositoryCardProps {
   searchQuery?: string; // 新增：用于高亮搜索关键词
 }
 
-export const RepositoryCard: React.FC<RepositoryCardProps> = ({
+export const RepositoryCard: React.FC<RepositoryCardProps> = memo(({
   repository,
   showAISummary = true,
   searchQuery = ''
@@ -239,8 +239,8 @@ export const RepositoryCard: React.FC<RepositoryCardProps> = ({
     return `https://zread.ai/${fullName}`;
   };
 
-  // 根据切换状态决定显示的内容
-  const getDisplayContent = () => {
+  // 根据切换状态决定显示的内容 - useMemo 缓存
+  const displayContent = useMemo(() => {
     if (repository.custom_description) {
       return {
         content: repository.custom_description,
@@ -268,12 +268,10 @@ export const RepositoryCard: React.FC<RepositoryCardProps> = ({
         isAI: false
       };
     }
-  };
+  }, [repository.custom_description, repository.description, repository.ai_summary, repository.analysis_failed, showAISummary, language]);
 
-  const displayContent = getDisplayContent();
-
-  // 获取显示的标签
-  const getDisplayTags = () => {
+  // 获取显示的标签 - useMemo 缓存
+  const displayTags = useMemo(() => {
     if (repository.custom_tags && repository.custom_tags.length > 0) {
       return { tags: repository.custom_tags, isCustom: true };
     } else if (repository.ai_tags && repository.ai_tags.length > 0) {
@@ -281,22 +279,15 @@ export const RepositoryCard: React.FC<RepositoryCardProps> = ({
     } else {
       return { tags: repository.topics || [], isCustom: false };
     }
-  };
+  }, [repository.custom_tags, repository.ai_tags, repository.topics]);
 
-  const displayTags = getDisplayTags();
+  // 获取显示的分类 - useMemo 缓存
+  const displayCategory = useMemo(() => {
+    return repository.custom_category || null;
+  }, [repository.custom_category]);
 
-  // 获取显示的分类
-  const getDisplayCategory = () => {
-    if (repository.custom_category) {
-      return repository.custom_category;
-    }
-    return null;
-  };
-
-  const displayCategory = getDisplayCategory();
-
-  // 获取AI分析按钮的提示文本
-  const getAIButtonTitle = () => {
+  // 获取AI分析按钮的提示文本 - useMemo 缓存
+  const aiButtonTitle = useMemo(() => {
     if (repository.analysis_failed) {
       const analyzeTime = new Date(repository.analyzed_at!).toLocaleString();
       return language === 'zh'
@@ -310,7 +301,7 @@ export const RepositoryCard: React.FC<RepositoryCardProps> = ({
     } else {
       return language === 'zh' ? 'AI分析此仓库' : 'Analyze with AI';
     }
-  };
+  }, [repository.analysis_failed, repository.analyzed_at, language]);
 
   const t = (zh: string, en: string) => language === 'zh' ? zh : en;
 
@@ -376,7 +367,7 @@ export const RepositoryCard: React.FC<RepositoryCardProps> = ({
                   ? 'bg-green-100 text-green-600 dark:bg-green-900 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-800'
                   : 'bg-purple-100 text-purple-600 dark:bg-purple-900 dark:text-purple-400 hover:bg-purple-200 dark:hover:bg-purple-800'
               } disabled:opacity-50`}
-            title={getAIButtonTitle()}
+            title={aiButtonTitle}
           >
             <Bot className="w-4 h-4" />
           </button>
@@ -598,4 +589,17 @@ export const RepositoryCard: React.FC<RepositoryCardProps> = ({
       />
     </div>
   );
-};
+}, (prevProps, nextProps) => {
+  // 自定义比较：只有关键属性变化时才重新渲染
+  return (
+    prevProps.repository.id === nextProps.repository.id &&
+    prevProps.repository.analyzed_at === nextProps.repository.analyzed_at &&
+    prevProps.repository.analysis_failed === nextProps.repository.analysis_failed &&
+    prevProps.repository.ai_summary === nextProps.repository.ai_summary &&
+    prevProps.repository.custom_description === nextProps.repository.custom_description &&
+    prevProps.showAISummary === nextProps.showAISummary &&
+    prevProps.searchQuery === nextProps.searchQuery
+  );
+});
+
+RepositoryCard.displayName = 'RepositoryCard';

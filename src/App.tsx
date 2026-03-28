@@ -61,8 +61,8 @@ function App() {
       }
     };
 
-    // Try to init when backendApiSecret is available (login or rehydrate)
-    if (backendApiSecret) {
+    // 只要认证了就加载数据（无论是登录还是刷新页面）
+    if (isAuthenticated) {
       initBackend();
     }
 
@@ -72,7 +72,7 @@ function App() {
         stopAutoSync(unsubscribe);
       }
     };
-  }, [backendApiSecret]);
+  }, [isAuthenticated]);
 
   // Show login screen if not authenticated
   if (!isAuthenticated) {

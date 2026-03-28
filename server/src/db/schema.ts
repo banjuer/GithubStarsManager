@@ -122,5 +122,33 @@ export function initializeSchema(db: Database.Database): void {
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     );
+
+    -- ==================== 性能优化索引 ====================
+    
+    -- repositories 表索引
+    CREATE INDEX IF NOT EXISTS idx_repositories_user_id ON repositories(user_id);
+    CREATE INDEX IF NOT EXISTS idx_repositories_user_stars ON repositories(user_id, stargazers_count DESC);
+    CREATE INDEX IF NOT EXISTS idx_repositories_user_language ON repositories(user_id, language);
+    CREATE INDEX IF NOT EXISTS idx_repositories_user_pushed ON repositories(user_id, pushed_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_repositories_user_starred ON repositories(user_id, starred_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_repositories_analysis_failed ON repositories(user_id, analysis_failed);
+    
+    -- releases 表索引
+    CREATE INDEX IF NOT EXISTS idx_releases_user_id ON releases(user_id);
+    CREATE INDEX IF NOT EXISTS idx_releases_repo_id ON releases(repo_id);
+    CREATE INDEX IF NOT EXISTS idx_releases_user_published ON releases(user_id, published_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_releases_user_read ON releases(user_id, is_read);
+    
+    -- settings 表索引
+    CREATE INDEX IF NOT EXISTS idx_settings_user_key ON settings(user_id, key);
+    
+    -- categories 表索引
+    CREATE INDEX IF NOT EXISTS idx_categories_user_id ON categories(user_id);
+    
+    -- ai_configs 表索引
+    CREATE INDEX IF NOT EXISTS idx_ai_configs_user_active ON ai_configs(user_id, is_active);
+    
+    -- webdav_configs 表索引
+    CREATE INDEX IF NOT EXISTS idx_webdav_configs_user_active ON webdav_configs(user_id, is_active);
   `);
 }
