@@ -236,6 +236,10 @@ async function syncStars(userId: number): Promise<void> {
   
   console.log(`Synced stars for user ${userId}: ${newStars.length} added, ${removedStars.length} removed`);
   
+  // 更新 lastSync 到 settings 表，这样前端可以显示正确的同步时间
+  const now = new Date().toISOString();
+  db.prepare('INSERT OR REPLACE INTO settings (key, user_id, value) VALUES (?, ?, ?)').run('lastSync', userId, now);
+  
   if (newStars.length > 0) {
     const analyzedRepos = await analyzeNewStars(userId, newStars);
     await sendStarNotification(userId, newStars.length, removedStars.length, analyzedRepos);
@@ -684,6 +688,10 @@ export async function syncStarsManually(userId: number): Promise<{ added: number
   }
   
   console.log(`Manual sync for user ${userId}: ${newStars.length} added, ${removedStars.length} removed`);
+  
+  // 更新 lastSync 到 settings 表
+  const now = new Date().toISOString();
+  db.prepare('INSERT OR REPLACE INTO settings (key, user_id, value) VALUES (?, ?, ?)').run('lastSync', userId, now);
   
   if (newStars.length > 0) {
     const analyzedRepos = await analyzeNewStars(userId, newStars);
