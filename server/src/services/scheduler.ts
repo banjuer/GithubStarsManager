@@ -251,21 +251,29 @@ async function syncStars(userId: number): Promise<void> {
 async function analyzeNewStars(userId: number, newStars: any[]): Promise<Array<{ fullName: string; summary: string | null; success: boolean }>> {
   const db = getDb();
   
-  const activeAIConfig = db.prepare(`
+  // 首先尝试获取活跃的 AI 配置
+  let aiConfig = db.prepare(`
     SELECT * FROM ai_configs WHERE user_id = ? AND is_active = 1
   `).get(userId) as any;
   
-  if (!activeAIConfig) {
-    console.log(`No active AI config for user ${userId}, skipping AI analysis`);
+  // 如果没有活跃配置，尝试获取用户的任意一个 AI 配置（按创建顺序）
+  if (!aiConfig) {
+    aiConfig = db.prepare(`
+      SELECT * FROM ai_configs WHERE user_id = ? ORDER BY id ASC LIMIT 1
+    `).get(userId) as any;
+  }
+  
+  if (!aiConfig) {
+    console.log(`No AI config found for user ${userId}, skipping AI analysis`);
     return newStars.map(star => ({ fullName: star.full_name, summary: null, success: false }));
   }
   
-  const decryptedKey = decrypt(activeAIConfig.api_key_encrypted, config.encryptionKey);
+  const decryptedKey = decrypt(aiConfig.api_key_encrypted, config.encryptionKey);
   const results: Array<{ fullName: string; summary: string | null; success: boolean }> = [];
   
   for (const repo of newStars) {
     try {
-      const analysis = await analyzeRepo(repo, activeAIConfig, decryptedKey);
+      const analysis = await analyzeRepo(repo, aiConfig, decryptedKey);
       
       if (analysis) {
         db.prepare(`
