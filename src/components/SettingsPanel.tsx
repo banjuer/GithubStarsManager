@@ -21,6 +21,7 @@ import {
   Key,
   User,
   Clock,
+  Play,
 } from 'lucide-react';
 import { AIConfig, WebDAVConfig } from '../types';
 import { useAppStore } from '../store/useAppStore';
@@ -98,6 +99,7 @@ export const SettingsPanel: React.FC = () => {
     notify_star_removed: 1,
   });
   const [isUpdatingTask, setIsUpdatingTask] = useState<string | null>(null);
+  const [isExecutingTask, setIsExecutingTask] = useState<string | null>(null);
   const [isUpdatingPrefs, setIsUpdatingPrefs] = useState(false);
 
   useEffect(() => {
@@ -666,6 +668,46 @@ Focus on practicality and accurate categorization to help users quickly understa
       toast.error(t('更新失败', 'Update failed'), error.message);
     } finally {
       setIsUpdatingTask(null);
+    }
+  };
+
+  const handleExecuteTask = async (taskType: string) => {
+    setIsExecutingTask(taskType);
+    try {
+      const endpoint = taskType === 'sync_stars' ? '/api/sync/stars' : '/api/sync/releases';
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...backend.getAuthHeaders(),
+        },
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || 'Failed to execute task');
+      }
+
+      const result = await response.json();
+      
+      // 刷新任务列表以更新 last_run 时间
+      const tasksResponse = await fetch('/api/scheduled-tasks', {
+        headers: backend.getAuthHeaders(),
+      });
+      if (tasksResponse.ok) {
+        const tasks = await tasksResponse.json();
+        setScheduledTasks(tasks);
+      }
+      
+      toast.success(
+        t('任务执行成功！', 'Task executed successfully!'),
+        result.message || ''
+      );
+    } catch (error: any) {
+      console.error('Execute task failed:', error);
+      toast.error(t('执行失败', 'Execution failed'), error.message);
+    } finally {
+      setIsExecutingTask(null);
     }
   };
 
@@ -1312,6 +1354,18 @@ Focus on practicality and accurate categorization to help users quickly understa
                     className="mt-4 px-3 py-1.5 text-sm bg-teal-600 text-white rounded hover:bg-teal-700 transition-colors disabled:opacity-50"
                   >
                     {isUpdatingTask === task.task_type ? t('保存中...', 'Saving...') : t('保存', 'Save')}
+                  </button>
+                  <button
+                    onClick={() => handleExecuteTask(task.task_type)}
+                    disabled={isExecutingTask === task.task_type}
+                    className="mt-4 flex items-center space-x-1 px-3 py-1.5 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors disabled:opacity-50"
+                  >
+                    {isExecutingTask === task.task_type ? (
+                      <RefreshCw className="w-3 h-3 animate-spin" />
+                    ) : (
+                      <Play className="w-3 h-3" />
+                    )}
+                    <span>{isExecutingTask === task.task_type ? t('执行中...', 'Executing...') : t('执行', 'Execute')}</span>
                   </button>
                 </div>
                 
