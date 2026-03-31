@@ -127,4 +127,12 @@
     </changelog>
     <downloadUrl>https://github.com/banjuer/GithubStarsManager/releases/download/v1.2.3/github-stars-manager-1.2.3.dmg</downloadUrl>
   </version>
+  <version>
+    <number>1.2.8</number>
+    <releaseDate>2026-03-31</releaseDate>
+    <changelog>
+      <item>Fixed AI analysis language inconsistency: backend scheduled tasks now use the same prompts and language settings as frontend manual analysis.</item>
+    </changelog>
+    <downloadUrl>https://github.com/banjuer/GithubStarsManager/releases/tag/v1.2.8</downloadUrl>
+  </version>
 </versions>

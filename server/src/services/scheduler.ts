@@ -268,12 +268,16 @@ async function analyzeNewStars(userId: number, newStars: any[]): Promise<Array<{
     return newStars.map(star => ({ fullName: star.full_name, summary: null, success: false }));
   }
   
+  // 读取用户的语言设置，默认中文
+  const languageRow = db.prepare('SELECT value FROM settings WHERE user_id = ? AND key = ?').get(userId, 'language') as { value: string } | undefined;
+  const language = languageRow?.value || 'zh';
+  
   const decryptedKey = decrypt(aiConfig.api_key_encrypted, config.encryptionKey);
   const results: Array<{ fullName: string; summary: string | null; success: boolean }> = [];
   
   for (const repo of newStars) {
     try {
-      const analysis = await analyzeRepo(repo, aiConfig, decryptedKey);
+      const analysis = await analyzeRepo(repo, aiConfig, decryptedKey, language);
       
       if (analysis) {
         db.prepare(`
@@ -306,16 +310,43 @@ async function analyzeNewStars(userId: number, newStars: any[]): Promise<Array<{
   return results;
 }
 
-async function analyzeRepo(repo: any, aiConfig: any, apiKey: string): Promise<{ summary: string; tags: string[]; platforms: string[] } | null> {
-  const prompt = `Please analyze this GitHub repository and provide:
+async function analyzeRepo(repo: any, aiConfig: any, apiKey: string, language: string = 'zh'): Promise<{ summary: string; tags: string[]; platforms: string[] } | null> {
+  const system = language === 'zh'
+    ? '你是一个专业的GitHub仓库分析助手。请严格按照用户指定的语言进行分析，无论原始内容是什么语言。请用中文简洁地分析仓库，提供实用的概述、分类标签和支持的平台类型。'
+    : 'You are a professional GitHub repository analysis assistant. Please strictly analyze in the language specified by the user, regardless of the original content language. Please analyze repositories concisely in English, providing practical overviews, category tags, and supported platform types.';
+
+  const prompt = language === 'zh'
+    ? `请分析这个GitHub仓库并提供：
+
+1. 一个简洁的中文概述（不超过50字），说明这个仓库的主要功能和用途
+2. 3-5个相关的应用类型标签（用中文，类似应用商店的分类，如：开发工具、Web应用、移动应用、数据库、AI工具等）
+3. 支持的平台类型（从以下选择：mac、windows、linux、ios、android、docker、web、cli）
+
+重要：请严格使用中文进行分析和回复，无论原始README是什么语言。
+
+请以JSON格式回复：
+{
+  "summary": "你的中文概述",
+  "tags": ["标签1", "标签2", "标签3"],
+  "platforms": ["platform1", "platform2"]
+}
+
+仓库信息：
+- 名称：${repo.full_name}
+- 描述：${repo.description || '无描述'}
+- 编程语言：${repo.language || '未知'}
+- URL：${repo.html_url}`
+    : `Please analyze this GitHub repository and provide:
 
 1. A concise English overview (no more than 50 words) explaining the main functionality and purpose
-2. 3-5 relevant application type tags (e.g., development tools, web apps, mobile apps, database, AI tools)
+2. 3-5 relevant application type tags (in English, similar to app store categories, such as: development tools, web apps, mobile apps, database, AI tools, etc.)
 3. Supported platform types (choose from: mac, windows, linux, ios, android, docker, web, cli)
+
+Important: Please strictly use English for analysis and response, regardless of the original README language.
 
 Please reply in JSON format:
 {
-  "summary": "Your overview",
+  "summary": "Your English overview",
   "tags": ["tag1", "tag2", "tag3"],
   "platforms": ["platform1", "platform2"]
 }
@@ -334,12 +365,13 @@ Repository information:
     
     if (aiConfig.api_type === 'gemini') {
       const geminiUrl = `${baseUrl}/models/${aiConfig.model}:generateContent?key=${apiKey}`;
+      const geminiPrompt = system ? `${system}\n\n${prompt}` : prompt;
       response = await fetch(geminiUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.7, maxOutputTokens: 500 }
+          contents: [{ parts: [{ text: geminiPrompt }] }],
+          generationConfig: { temperature: 0.3, maxOutputTokens: 400 }
         })
       });
       
@@ -363,15 +395,23 @@ Repository information:
         headers['Authorization'] = `Bearer ${apiKey}`;
       }
       
+      const messages: any[] = [
+        ...(system.trim() ? [{ role: 'system', content: system }] : []),
+        { role: 'user', content: prompt }
+      ];
+      
       const body: any = {
         model: aiConfig.model,
-        messages: [{ role: 'user', content: prompt }],
-        max_tokens: 500,
-        temperature: 0.7
+        messages,
+        max_tokens: 400,
+        temperature: 0.3
       };
       
       if (aiConfig.api_type === 'claude') {
-        body.max_tokens = 500;
+        if (system.trim()) {
+          body.system = system;
+        }
+        body.messages = [{ role: 'user', content: prompt }];
       }
       
       response = await fetch(url, {

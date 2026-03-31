@@ -182,6 +182,7 @@ export async function syncToBackend(): Promise<void> {
         activeAIConfig: state.activeAIConfig,
         activeWebDAVConfig: state.activeWebDAVConfig,
         lastSync: state.lastSync,
+        language: state.language,
       }),
     ]);
     const [reposSync, releasesSync, aiSync, webdavSync, settingsSync] = results;
