@@ -242,9 +242,9 @@ async function syncStars(userId: number): Promise<void> {
   
   if (newStars.length > 0) {
     const analyzedRepos = await analyzeNewStars(userId, newStars);
-    await sendStarNotification(userId, newStars.length, removedStars.length, analyzedRepos);
+    await sendStarNotification(userId, newStars.length, removedStars.length, analyzedRepos, removedStars);
   } else if (removedStars.length > 0) {
-    await sendStarNotification(userId, 0, removedStars.length, []);
+    await sendStarNotification(userId, 0, removedStars.length, [], removedStars);
   }
 }
 
@@ -457,7 +457,8 @@ async function sendStarNotification(
   userId: number, 
   added: number, 
   removed: number,
-  analyzedRepos: Array<{ fullName: string; summary: string | null; success: boolean }>
+  analyzedRepos: Array<{ fullName: string; summary: string | null; success: boolean }>,
+  removedRepos: string[] = []
 ): Promise<void> {
   const db = getDb();
   
@@ -489,7 +490,10 @@ async function sendStarNotification(
   }
   
   if (removed > 0 && prefs.notify_star_removed) {
-    parts.push(`\n❌ ${removed} star(s) removed`);
+    parts.push(`\n❌ ${removed} star(s) removed:`);
+    for (const fullName of removedRepos) {
+      parts.push(`\n📦 ${fullName}`);
+    }
   }
   
   if (parts.length === 0) return;
@@ -743,9 +747,9 @@ export async function syncStarsManually(userId: number): Promise<{ added: number
   
   if (newStars.length > 0) {
     const analyzedRepos = await analyzeNewStars(userId, newStars);
-    await sendStarNotification(userId, newStars.length, removedStars.length, analyzedRepos);
+    await sendStarNotification(userId, newStars.length, removedStars.length, analyzedRepos, removedStars);
   } else if (removedStars.length > 0) {
-    await sendStarNotification(userId, 0, removedStars.length, []);
+    await sendStarNotification(userId, 0, removedStars.length, [], removedStars);
   }
   
   return {
